@@ -32,6 +32,7 @@ def get_opened_vacancies():
     if v:
         return v.data
 
+@retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
 def get_vacancy_id(vacancy_name):
     v = (supabase.table('vacancies')
          .select('id')
@@ -40,6 +41,20 @@ def get_vacancy_id(vacancy_name):
          .execute())
     if v:
         return v.data
+
+@retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
+def get_requirements_ids():
+    v = (supabase.table('requirements')
+         .select('id', 'name')
+         .execute())
+    if v:
+        return v.data
+
+def transform_marks(marks_dict, reqs_dict):
+    name_to_id = {item['name']: item['id'] for item in reqs_dict}
+    transformed_dict = {name_to_id[key]: value for key, value in marks_dict.items() if key in name_to_id}
+    return transformed_dict
+
 
 #@st.cache_resource(ttl=TTL)
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
@@ -76,7 +91,7 @@ def get_candidate(email: str):
 def update_marks(vacancy_id, cand_id, marks):
     (supabase.table('marks')
      .upsert([dict(vacancy_id=vacancy_id,
-                   candidate_id=cand_id,
+                   chat_id=cand_id,
                    requirement_id=id,
                    value=val)
               for id, val in marks.items()])

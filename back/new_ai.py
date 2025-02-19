@@ -24,14 +24,18 @@ with open('back/hr_prompt.md', encoding='utf-8') as f:
 with open('back/start_msg.md', encoding='utf-8') as f:
     start_template = f.read()
 
+
+
 conn_info = POSTGRES_URL
-try:
-    sync_connection = psycopg.connect(conn_info, prepare_threshold=None)
-    print("Connected to the database")
-except Exception as e:
-    print(f"Unable to connect to the database: {e}")
-table_name = 'chat_history'
-PostgresChatMessageHistory.create_tables(sync_connection, table_name)
+
+with psycopg.connect(conn_info, prepare_threshold=None) as conn:
+    try:
+        sync_connection = conn
+        print("Connected to the database")
+    except Exception as e:
+        print(f"Unable to connect to the database: {e}")
+    table_name = 'chat_history'
+    PostgresChatMessageHistory.create_tables(sync_connection, table_name)
 
 
 def cand_name(cand):
@@ -62,24 +66,28 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
 
     llm_with_tools = chat.bind_tools(tools)
 
-    def get_session_history(session_id: str) -> PostgresChatMessageHistory:
+    def get_session_history(session_id: str, connection) -> PostgresChatMessageHistory:
         return PostgresChatMessageHistory(
             table_name,
             session_id,
-            sync_connection=sync_connection
+            sync_connection=connection
         )
 
     def call_model(state: MessagesState, config: dict):
         # Use the chat model to generate a response
-        session_id = config.get('configurable').get('thread_id')
-        session_id_uuid = uuid.UUID(int=session_id)
-        chat_history = get_session_history(str(session_id_uuid))
-        previous_messages = chat_history.messages
-        prompted_messages = prompt.invoke(state['messages'])
-        all_messages = previous_messages + prompted_messages.messages
-        response = llm_with_tools.invoke(all_messages)
-        chat_history.add_messages(state['messages']+[response])
-        return {"messages": response}
+        with psycopg.connect(conn_info, prepare_threshold=None) as conn:
+            session_id = config.get('configurable').get('thread_id')
+            session_id_uuid = uuid.UUID(int=session_id)
+            chat_history = get_session_history(str(session_id_uuid), conn)
+            previous_messages = chat_history.messages
+            prompted_messages = prompt.invoke(state['messages'])
+            if previous_messages is not None and len(state['messages']) == 1:
+                all_messages = previous_messages + prompted_messages.messages
+                response = llm_with_tools.invoke(all_messages)
+            else:
+                response = llm_with_tools.invoke(prompted_messages)
+            chat_history.add_messages([state['messages'][-1]]+[response])
+            return {"messages": response}
 
 
 
@@ -98,26 +106,27 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
         greeting = graph.invoke(initial_state, config)
         #log.info(f'Greeting - ${cb.total_cost:.4f}')
 
-    return greeting['messages'][-1].content
+    def process_candidate_input(chat_id, input):
+        log.info(f'user : {input}')
+        user_state = {'messages': [HumanMessage(content=input)]}
+        with get_openai_callback() as cb:
+            resp = graph.invoke(user_state, config)
+            #log.info(f'Question - ${cb.total_cost:.4f}')
+        msg = resp['messages'][-1].content
+        marks = None
+        for tc in resp['messages'][-1].tool_calls or []:
+            if tc['name'] == Marks.__name__:
+                marks = tc['args']
+        log.info(f'bot : {msg}')
+        if marks:
+            log.info(f'Set marks : {marks}')
+            if not msg:
+                msg = 'Спасибо за интервью! Мы закончили.'
+        session_id = config.get('configurable').get('thread_id')
+        session_id_uuid = uuid.UUID(int=session_id)
+        with psycopg.connect(conn_info, prepare_threshold=None) as conn:
+            hist = get_session_history(str(session_id_uuid), conn).messages
+            return msg, marks, hist
 
-def process_candidate_input(chat_id, input):
-    log.info(f'user : {input}')
-    user_state = {'messages': [HumanMessage(content=input)]}
-    with get_openai_callback() as cb:
-        resp = graph.invoke(user_state, config)
-        #log.info(f'Question - ${cb.total_cost:.4f}')
-    msg = resp['messages'][-1].content
-    marks = None
-    for tc in resp['messages'][-1].tool_calls or []:
-        if tc['name'] == Marks.__name__:
-            marks = tc['args']
-    log.info(f'bot : {msg}')
-    if marks:
-        log.info(f'Set marks : {marks}')
-        if not msg:
-            msg = 'Спасибо за интервью! Мы закончили.'
-    session_id = config.get('configurable').get('thread_id')
-    session_id_uuid = uuid.UUID(int=session_id)
-    hist = get_session_history(str(session_id_uuid)).messages
-    return msg, marks, hist
+    return greeting['messages'][-1].content, process_candidate_input
 

@@ -10,7 +10,7 @@ from back.new_ai import start_chat, cand_name
 from back.db import (get_candidate, get_vacancy,
                      get_requirements, update_marks,
                      update_candidate_info, get_opened_vacancies,
-                     get_vacancy_id, get_chat_state)
+                     get_vacancy_id, get_chat_state, transform_marks, get_requirements_ids)
 
 
 log = logging.getLogger(__file__)
@@ -20,6 +20,7 @@ user_data = {}
 
 # Replace 'YOUR_BOT_TOKEN' with your actual bot token
 bot = telebot.TeleBot(BOT_TOKEN)
+log.info('Bot started')
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -31,7 +32,6 @@ def process_email(message):
     chat_id = message.chat.id
     email = message.text
     cand = get_candidate(email)
-    print(type(cand['id']))
     if cand:
         bot.send_message(chat_id, "We found your resume.")
         update_candidate_info(chat_id, new_resume = cand['resume'], new_state='found resume', cand_id = cand['id'])
@@ -98,11 +98,13 @@ def interview_candidate(message, vacancy_id, chat_processor):
     msg, marks, hist = chat_processor(chat_id, input_msg)
 
     if marks:
-        update_marks(vacancy_id, message.chat.id, marks)
+        id_marks = transform_marks(marks, get_requirements_ids())
+        update_marks(vacancy_id, message.chat.id, id_marks)
         update_candidate_info(chat_id, new_state='FINISHED')
         bot.send_message(message.chat.id, msg)
     else:
         bot.send_message(message.chat.id, msg)
+        bot.register_next_step_handler_by_chat_id(chat_id, interview_candidate, vacancy_id, chat_processor)
 
 # @bot.message_handler(func=lambda message: True)
 # def echo(message):
