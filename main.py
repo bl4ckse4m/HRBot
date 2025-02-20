@@ -99,7 +99,7 @@ def interview_candidate(message, vacancy_id, chat_processor):
 
     if marks:
         id_marks = transform_marks(marks, get_requirements_ids())
-        update_marks(vacancy_id, message.chat.id, id_marks)
+        update_marks(vacancy_id['id'], message.chat.id, id_marks)
         update_candidate_info(chat_id, new_state='FINISHED')
         bot.send_message(message.chat.id, msg)
     else:

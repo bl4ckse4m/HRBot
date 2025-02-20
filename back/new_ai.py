@@ -129,4 +129,3 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
             return msg, marks, hist
 
     return greeting['messages'][-1].content, process_candidate_input
-
