@@ -1,4 +1,5 @@
 import logging
+import json
 
 import telebot
 import os
@@ -6,7 +7,7 @@ import os
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
 from PyPDF2 import PdfReader
 from config import BOT_TOKEN
-from back.new_ai import start_chat, cand_name
+from back.ai import start_chat, evaluate
 from back.db import (get_candidate, get_vacancy,
                      get_requirements, update_marks,
                      update_candidate_info, get_opened_vacancies,
@@ -43,24 +44,40 @@ def process_email(message):
 def show_vacancies(chat_id, cand):
     vacancies = get_opened_vacancies()
     if vacancies:
-        vacancy_list = "\n".join([f"- {vacancy}" for vacancy in vacancies])
-        msg = bot.send_message(chat_id, f"Please select a vacancy from the list below by typing its name:\n{vacancy_list}")
-        bot.register_next_step_handler(msg, process_vacancy_selection, cand)
+        markup = telebot.types.InlineKeyboardMarkup()
+        for vacancy in vacancies:
+            data_dict = {'id': vacancy['id'], 'name': vacancy['name']}
+            callback_data = f"{data_dict['id']}|{data_dict['name']}"
+            print(callback_data)
+            print(len(callback_data))
+            markup.add(telebot.types.InlineKeyboardButton(text=vacancy['name'], callback_data=callback_data))
+        bot.send_message(chat_id, "Выберите вакансию из списка ниже:", reply_markup=markup)
+        # vacancy_list = "\n".join([f"- {vacancy["name"]}" for vacancy in vacancies])
+        # msg = bot.send_message(chat_id, f"Please select a vacancy from the list below by typing its name:\n{vacancy_list}")
+        create_callback_handler(cand)
     else:
         bot.send_message(chat_id, "Currently, there are no open vacancies.")
 
-def process_vacancy_selection(message, cand):
-    chat_id = message.chat.id
-    selected_vacancy = message.text
-    vacancy_id = get_vacancy_id(selected_vacancy)
-    print(vacancy_id, type(vacancy_id['id']))
-    vacancy_requirements = get_requirements(vacancy_id['id'])
-    if vacancy_requirements:
-        bot.send_message(chat_id, f"Requirements for {selected_vacancy} retrieved.")
-        initiate_llm_chat(chat_id, vacancy_id, cand, vacancy_requirements)
-    else:
-        msg = bot.send_message(chat_id, "Vacancy not found. Please enter a valid vacancy name.")
-        bot.register_next_step_handler(msg, process_vacancy_selection, cand)
+def create_callback_handler(cand):
+    @bot.callback_query_handler(func=lambda call: True)
+    def process_vacancy_selection(call):
+        chat_id = call.message.chat.id
+        #chat_id = message.chat.id
+        data = call.data.split('|')
+        vacancy_id = int(data[0])
+        vacancy_name = data[1]
+        # selected_vacancy = message.text
+        #vacancy_id = get_vacancy_id(selected_vacancy)
+        #print(vacancy_id, type(vacancy_id['id']))
+        bot.answer_callback_query(call.id, f"Вы выбрали вакансию: {vacancy_name}")
+
+        vacancy_requirements = get_requirements(vacancy_id)
+        if vacancy_requirements:
+            bot.send_message(chat_id, f"Requirements for {vacancy_name} retrieved.")
+            initiate_llm_chat(chat_id, vacancy_id, cand, vacancy_requirements)
+        else:
+            msg = bot.send_message(chat_id, "Vacancy not found. Please enter a valid vacancy name.")
+            bot.register_next_step_handler(msg, process_vacancy_selection, cand)
 
 
 def handle_document_upload(message, email):
@@ -79,32 +96,44 @@ def handle_document_upload(message, email):
         msg = bot.send_message(chat_id, "Please upload a valid .pdf file.")
         bot.register_next_step_handler(msg, handle_document_upload, email)
 
-
-
 def initiate_llm_chat(chat_id, vacancy_id, cand, vacancy_requirements):
     if cand:
         greeting, chat_processor = start_chat(chat_id, vacancy_id, cand, vacancy_requirements)
-        msg = bot.send_message(chat_id, greeting)
-        update_candidate_info(chat_id, new_state='STARTED')
-        bot.register_next_step_handler_by_chat_id(chat_id, interview_candidate, vacancy_id, chat_processor)
+        greeting_msg = greeting['messages'][-1].content
+        bot.send_message(chat_id, greeting_msg)
+        if greeting['is_finished']:
+            marks = evaluate(chat_id, cand, vacancy_requirements)
+            if marks:
+                id_marks = transform_marks(marks, get_requirements_ids())
+                update_marks(vacancy_id, chat_id, id_marks)
+                update_candidate_info(chat_id, new_state='FINISHED')
+            else:
+                log.info('Interview finished, but marks not found')
+        else:
+            update_candidate_info(chat_id, new_state='STARTED')
+            bot.register_next_step_handler_by_chat_id(chat_id, interview_candidate, chat_processor, vacancy_id, cand, vacancy_requirements)
     else:
         bot.send_message(chat_id, "Resume not found. Please upload your resume.")
         bot.register_next_step_handler_by_chat_id(chat_id, handle_document_upload)
 
 @bot.message_handler(func=lambda message: get_chat_state(message.chat.id) == 'STARTED')
-def interview_candidate(message, vacancy_id, chat_processor):
+def interview_candidate(message,  chat_processor, vacancy_id, cand, requirements):
     chat_id = message.chat.id
     input_msg = message.text
-    msg, marks, hist = chat_processor(chat_id, input_msg)
+    msg, finish, hist = chat_processor(chat_id, input_msg)
 
-    if marks:
-        id_marks = transform_marks(marks, get_requirements_ids())
-        update_marks(vacancy_id['id'], message.chat.id, id_marks)
-        update_candidate_info(chat_id, new_state='FINISHED')
-        bot.send_message(message.chat.id, msg)
+    if finish:
+        marks = evaluate(chat_id, cand, requirements)
+        if marks:
+            id_marks = transform_marks(marks, get_requirements_ids())
+            update_marks(vacancy_id, message.chat.id, id_marks)
+            update_candidate_info(chat_id, new_state='FINISHED')
+            bot.send_message(message.chat.id, msg)
+        else:
+            log.info('Interview finished, but marks not found')
     else:
         bot.send_message(message.chat.id, msg)
-        bot.register_next_step_handler_by_chat_id(chat_id, interview_candidate, vacancy_id, chat_processor)
+        bot.register_next_step_handler_by_chat_id(chat_id, interview_candidate,  chat_processor, vacancy_id, cand, requirements)
 
 # @bot.message_handler(func=lambda message: True)
 # def echo(message):
@@ -128,3 +157,4 @@ def extract_text_from_pdf(pdf_path):
 
 # Start the bot
 bot.polling(logger_level=logging.INFO)
+

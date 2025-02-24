@@ -27,7 +27,7 @@ def get_vacancy(vacancy_id):
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
 def get_opened_vacancies():
     v = (supabase.table('vacancies')
-         .select('name')
+         .select('id','name')
          .execute())
     if v:
         return v.data
