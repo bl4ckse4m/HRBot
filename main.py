@@ -1,27 +1,85 @@
 import logging
 import json
+from contextlib import asynccontextmanager
 
 import telebot
 import os
-
 from telebot.types import ReplyKeyboardMarkup, KeyboardButton
+from telebot import TeleBot, types
 from PyPDF2 import PdfReader
+from fastapi import FastAPI, Request, Response, Body
+from fastapi.responses import JSONResponse
 from config import BOT_TOKEN
 from back.ai import start_chat, evaluate
-from back.db import (get_candidate, get_vacancy,
-                     get_requirements, update_marks,
-                     update_candidate_info, get_opened_vacancies,
-                     get_vacancy_id, get_chat_state, transform_marks, get_requirements_ids)
-
+from back.db import (
+    get_candidate, get_vacancy, get_requirements,
+    update_marks, update_candidate_info, get_opened_vacancies,
+    get_vacancy_id, get_chat_state, transform_marks, get_requirements_ids
+)
 
 log = logging.getLogger(__file__)
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup
+    try:
+        # Remove webhook if exists
+        bot.remove_webhook()
+
+        webhook_url = WEBHOOK_URL_BASE + WEBHOOK_URL_PATH
+        # Set webhook
+        bot.set_webhook(
+            url=webhook_url,
+            #certificate=open(WEBHOOK_SSL_CERT, 'r')
+        )
+
+        log.info(f'Webhook setup completed {webhook_url}')
+        yield
+    finally:
+        # Cleanup
+        try:
+            bot.remove_webhook()
+            log.info('Webhook removed during shutdown')
+        except Exception as e:
+            log.error(f"Error removing webhook: {str(e)}")
+
+app = FastAPI(lifespan=lifespan, docs_url=None, redoc_url=None)
 
 # Dictionary to store user data
 user_data = {}
 
-# Replace 'YOUR_BOT_TOKEN' with your actual bot token
-bot = telebot.TeleBot(BOT_TOKEN)
-log.info('Bot started')
+# Initialize bot
+bot = TeleBot(BOT_TOKEN)
+
+WEBHOOK_HOST = os.environ.get('WEBHOOK_HOST', 'localhost')
+WEBHOOK_PORT = int(os.environ.get('WEBHOOK_PORT', '8443'))
+WEBHOOK_SSL_CERT = './webhook_cert.pem'
+WEBHOOK_SSL_PRIV = './webhook_pkey.pem'
+
+WEBHOOK_URL_BASE = f"https://{WEBHOOK_HOST}"
+WEBHOOK_URL_PATH = f"/{BOT_TOKEN}/"
+
+
+
+
+
+
+
+@app.post(f"/{BOT_TOKEN}/")
+
+def process_webhook(request: dict = Body(...)):
+    #if request.method != "POST":
+    #    return JSONResponse({"error": "Invalid request method"}, status_code=405)
+
+    try:
+        update = request
+        update = types.Update.de_json(update)
+        bot.process_new_updates([update])
+        return {"status": "ok"}
+    except Exception as e:
+        log.error(f"Webhook error: {str(e)}")
+        return {"status": "error"}, 500
+
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -154,7 +212,16 @@ def extract_text_from_pdf(pdf_path):
     return text
 
 
+if __name__ == "__main__":
+    import uvicorn
 
-# Start the bot
-bot.polling(logger_level=logging.INFO)
+    ssl_cert = os.environ.get('SSL_CERT', WEBHOOK_SSL_CERT)
+    ssl_key = os.environ.get('SSL_KEY', WEBHOOK_SSL_PRIV)
 
+    uvicorn.run(
+        app,
+        host="0.0.0.0",
+        port=WEBHOOK_PORT,
+        #ssl_certfile=ssl_cert,
+        #ssl_keyfile=ssl_key
+    )
