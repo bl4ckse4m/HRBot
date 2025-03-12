@@ -4,13 +4,10 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b70034f2-ced6-48f2-afed-dc617bc2d54e" name="Changes" comment="Modified prompt and fixed marks updating">
-      <change afterPath="$PROJECT_DIR$/back/evaluate_prompt.md" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/back/hr_prompt2.md" afterDir="false" />
+    <list default="true" id="b70034f2-ced6-48f2-afed-dc617bc2d54e" name="Changes" comment="Separated evaluating marks from interviewing">
+      <change afterPath="$PROJECT_DIR$/back/custom_postgres.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/ai.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/back/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/db.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/back/hr_prompt.md" beforeDir="false" afterPath="$PROJECT_DIR$/back/hr_prompt.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/back/ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/ai.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -162,7 +159,15 @@
       <option name="project" value="LOCAL" />
       <updated>1740082061683</updated>
     </task>
-    <option name="localTasksCounter" value="7" />
+    <task id="LOCAL-00007" summary="Separated evaluating marks from interviewing">
+      <option name="closed" value="true" />
+      <created>1740407551625</created>
+      <option name="number" value="00007" />
+      <option name="presentableId" value="LOCAL-00007" />
+      <option name="project" value="LOCAL" />
+      <updated>1740407551625</updated>
+    </task>
+    <option name="localTasksCounter" value="8" />
     <servers />
   </component>
   <component name="VcsManagerConfiguration">
@@ -172,7 +177,8 @@
     <MESSAGE value="Almost working bot v.2" />
     <MESSAGE value="deleted txt data" />
     <MESSAGE value="Modified prompt and fixed marks updating" />
-    <option name="LAST_COMMIT_MESSAGE" value="Modified prompt and fixed marks updating" />
+    <MESSAGE value="Separated evaluating marks from interviewing" />
+    <option name="LAST_COMMIT_MESSAGE" value="Separated evaluating marks from interviewing" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -189,17 +195,17 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>118</line>
+          <line>119</line>
           <option name="timeStamp" value="35" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>101</line>
+          <line>102</line>
           <option name="timeStamp" value="36" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>175</line>
+          <line>176</line>
           <option name="timeStamp" value="41" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -214,7 +220,7 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>96</line>
+          <line>97</line>
           <option name="timeStamp" value="45" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
@@ -224,19 +230,15 @@
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>136</line>
+          <line>137</line>
           <option name="timeStamp" value="49" />
+        </line-breakpoint>
+        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
+          <url>file://$PROJECT_DIR$/back/ai.py</url>
+          <line>103</line>
+          <option name="timeStamp" value="51" />
         </line-breakpoint>
       </breakpoints>
     </breakpoint-manager>
-    <watches-manager>
-      <configuration name="PythonConfigurationType">
-        <watch expression="prompted_messages.messages[1]" />
-        <watch expression="state" />
-        <watch expression="prompted_messages" />
-        <watch expression="prompted_messages.model_fields" />
-        <watch expression="prompted_messages" />
-      </configuration>
-    </watches-manager>
   </component>
 </project>

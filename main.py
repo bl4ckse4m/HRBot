@@ -120,10 +120,10 @@ def initiate_llm_chat(chat_id, vacancy_id, cand, vacancy_requirements):
 def interview_candidate(message,  chat_processor, vacancy_id, cand, requirements):
     chat_id = message.chat.id
     input_msg = message.text
-    msg, finish, hist = chat_processor(chat_id, input_msg)
+    msg, finish, hist = chat_processor(chat_id, input_msg, vacancy_id)
 
     if finish:
-        marks = evaluate(chat_id, cand, requirements)
+        marks = evaluate(chat_id, cand, vacancy_id, requirements)
         if marks:
             id_marks = transform_marks(marks, get_requirements_ids())
             update_marks(vacancy_id, message.chat.id, id_marks)

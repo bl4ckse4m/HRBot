@@ -3,7 +3,7 @@ import uuid
 import psycopg
 from langchain_community.callbacks import get_openai_callback
 from langchain_core.output_parsers import PydanticOutputParser
-from langchain_postgres import PostgresChatMessageHistory
+from back.custom_postgres import PostgresChatMessageHistory
 from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
@@ -47,10 +47,11 @@ with psycopg.connect(conn_info, prepare_threshold=None) as conn:
 def cand_name(cand):
     return f'{cand["first_name"]} {cand["last_name"]}'
 
-def get_session_history(session_id: str, connection) -> PostgresChatMessageHistory:
+def get_session_history(session_id: str, vacancy_id: int, connection) -> PostgresChatMessageHistory:
     return PostgresChatMessageHistory(
         table_name,
         session_id,
+        vacancy_id,
         sync_connection=connection
     )
 
@@ -92,9 +93,9 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
         with psycopg.connect(conn_info, prepare_threshold=None) as conn:
             session_id = config.get('configurable').get('thread_id')
             session_id_uuid = uuid.UUID(int=session_id)
-            chat_history = get_session_history(str(session_id_uuid), conn)
+            chat_history = get_session_history(str(session_id_uuid), vacancy_id, conn)
             previous_messages = chat_history.messages
-            if previous_messages is not None:
+            if previous_messages:
                 response = chat.invoke(prompt.invoke(previous_messages))
             else:
                 prompted_messages = prompt.invoke(state['messages'])
@@ -119,7 +120,7 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
         greeting = graph.invoke(initial_state, config)
         #log.info(f'Greeting - ${cb.total_cost:.4f}')
 
-    def process_candidate_input(chat_id, input):
+    def process_candidate_input(chat_id, input, vacancy_id):
         log.info(f'user : {input}')
         user_state = {'messages': [HumanMessage(content=input)]}
         with get_openai_callback() as cb:
@@ -131,14 +132,14 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
         session_id = config.get('configurable').get('thread_id')
         session_id_uuid = uuid.UUID(int=session_id)
         with psycopg.connect(conn_info, prepare_threshold=None) as conn:
-            hist = get_session_history(str(session_id_uuid), conn).messages
+            hist = get_session_history(str(session_id_uuid), vacancy_id, conn).messages
             return msg, finish, hist
 
     return greeting, process_candidate_input
 
 
 
-def evaluate(chat_id, cand, requirements):
+def evaluate(chat_id, cand, vacancy_id, requirements):
     cand_id = chat_id
     config = {"configurable": {"thread_id": cand_id}}
     prompt = ChatPromptTemplate.from_messages(
@@ -164,7 +165,7 @@ def evaluate(chat_id, cand, requirements):
         with psycopg.connect(conn_info, prepare_threshold=None) as conn:
             session_id = config.get('configurable').get('thread_id')
             session_id_uuid = uuid.UUID(int=session_id)
-            chat_history = get_session_history(str(session_id_uuid), conn)
+            chat_history = get_session_history(str(session_id_uuid), vacancy_id, conn)
             previous_messages = chat_history.messages
             prompted_messages = prompt.invoke(previous_messages)
             response = llm_with_tools.invoke(prompted_messages)
