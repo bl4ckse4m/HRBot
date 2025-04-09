@@ -13,3 +13,4 @@ MODEL = 'gpt-4o-mini'
 
 
 setup_logger()
+conn_info = POSTGRES_URL

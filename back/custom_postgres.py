@@ -26,8 +26,7 @@ def _create_table_and_index(table_name: str) -> List[sql.Composed]:
             """
             CREATE TABLE IF NOT EXISTS {table_name} (
                 id SERIAL PRIMARY KEY,
-                session_id UUID NOT NULL,
-                vacancy_id INTEGER NOT NULL,
+                session_id INTEGER NOT NULL,
                 message JSONB NOT NULL,
                 created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
             );
@@ -49,7 +48,7 @@ def _get_messages_query(table_name: str) -> sql.Composed:
     return sql.SQL(
         "SELECT message "
         "FROM {table_name} "
-        "WHERE session_id = %(session_id)s and vacancy_id = %(vacancy_id)s "
+        "WHERE session_id = %(session_id)s "
         "ORDER BY id;"
     ).format(table_name=sql.Identifier(table_name))
 
@@ -57,7 +56,7 @@ def _get_messages_query(table_name: str) -> sql.Composed:
 def _delete_by_session_id_query(table_name: str) -> sql.Composed:
     """Make a SQL query to delete messages for a given session."""
     return sql.SQL(
-        "DELETE FROM {table_name} WHERE session_id = %(session_id)s and vacancy_id = %(vacancy_id)s;"
+        "DELETE FROM {table_name} WHERE session_id = %(session_id)s;"
     ).format(table_name=sql.Identifier(table_name))
 
 
@@ -71,7 +70,7 @@ def _delete_table_query(table_name: str) -> sql.Composed:
 def _insert_message_query(table_name: str) -> sql.Composed:
     """Make a SQL query to insert a message."""
     return sql.SQL(
-        "INSERT INTO {table_name} (session_id, vacancy_id, message) VALUES (%s, %s, %s)"
+        "INSERT INTO {table_name} (session_id, message) VALUES (%s, %s)"
     ).format(table_name=sql.Identifier(table_name))
 
 
@@ -80,7 +79,6 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         self,
         table_name: str,
         session_id: str,
-        vacancy_id: int,
         /,
         *,
         sync_connection: Optional[psycopg.Connection] = None,
@@ -190,23 +188,12 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         self._aconnection = async_connection
 
         # Validate that session id is a UUID
-        try:
-            uuid.UUID(session_id)
-        except ValueError:
+        if session_id != int(session_id):
             raise ValueError(
-                f"Invalid session id. Session id must be a valid UUID. Got {session_id}"
+                f"Invalid session id. Session id must be integer. Got {session_id}"
             )
 
         self._session_id = session_id
-
-        try:
-            int(vacancy_id)
-        except ValueError:
-            raise ValueError(
-                f"Invalid vacancy id. Vacancy id must be an integer. Got {vacancy_id}"
-            )
-
-        self._vacancy_id = vacancy_id
 
         if not re.match(r"^\w+$", table_name):
             raise ValueError(
@@ -290,7 +277,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
             )
 
         values = [
-            (self._session_id, self._vacancy_id, json.dumps(message_to_dict(message)))
+            (self._session_id, json.dumps(message_to_dict(message)))
             for message in messages
         ]
 
@@ -309,7 +296,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
             )
 
         values = [
-            (self._session_id, self._vacancy_id, json.dumps(message_to_dict(message)))
+            (self._session_id, json.dumps(message_to_dict(message)))
             for message in messages
         ]
 
@@ -329,7 +316,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
         query = _get_messages_query(self._table_name)
 
         with self._connection.cursor() as cursor:
-            cursor.execute(query, {"session_id": self._session_id, "vacancy_id": self._vacancy_id})
+            cursor.execute(query, {"session_id": self._session_id})
             items = [record[0] for record in cursor.fetchall()]
 
         messages = messages_from_dict(items)
@@ -345,7 +332,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
 
         query = _get_messages_query(self._table_name)
         async with self._aconnection.cursor() as cursor:
-            await cursor.execute(query, {"session_id": self._session_id, "vacancy_id": self._vacancy_id})
+            await cursor.execute(query, {"session_id": self._session_id})
             items = [record[0] for record in await cursor.fetchall()]
 
         messages = messages_from_dict(items)
@@ -366,7 +353,7 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
 
         query = _delete_by_session_id_query(self._table_name)
         with self._connection.cursor() as cursor:
-            cursor.execute(query, {"session_id": self._session_id, "vacancy_id": self._vacancy_id})
+            cursor.execute(query, {"session_id": self._session_id})
         self._connection.commit()
 
     async def aclear(self) -> None:
@@ -379,5 +366,5 @@ class PostgresChatMessageHistory(BaseChatMessageHistory):
 
         query = _delete_by_session_id_query(self._table_name)
         async with self._aconnection.cursor() as cursor:
-            await cursor.execute(query, {"session_id": self._session_id, "vacancy_id": self._vacancy_id})
+            await cursor.execute(query, {"session_id": self._session_id})
         await self._aconnection.commit()

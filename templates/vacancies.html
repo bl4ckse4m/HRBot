@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+
+{% block title %}Vacancies{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Vacancies</h1>
+<div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <ul class="divide-y divide-gray-200">
+        {% for vacancy in vacancies %}
+            <li class="p-4 hover:bg-gray-50 transition duration-150">
+                <a href="{{ url_for('candidates_page', vacancy_id=vacancy.id) }}" class="flex items-center space-x-4">
+                    <div class="flex-1">
+                        <p class="text-lg font-semibold text-gray-900">{{ vacancy.name }}</p>
+                    </div>
+                    <div>
+                        <svg class="h-5 w-5 text-gray-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                        </svg>
+                    </div>
+                </a>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}

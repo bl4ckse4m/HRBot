@@ -1,19 +1,21 @@
+import argparse
 import logging
 import uuid
+
 import psycopg
 from langchain_community.callbacks import get_openai_callback
+from langchain_core.messages import SystemMessage, HumanMessage, AIMessage
 from langchain_core.output_parsers import PydanticOutputParser
-from back.custom_postgres import PostgresChatMessageHistory
-from langchain_core.messages import SystemMessage, HumanMessage, AIMessage, ToolMessage
+from langchain_core.prompts import PromptTemplate, ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate
 from langchain_openai import ChatOpenAI
 from langgraph.checkpoint.memory import MemorySaver
-from langgraph.prebuilt import ToolNode
-from langchain_core.prompts import PromptTemplate,ChatPromptTemplate, MessagesPlaceholder, SystemMessagePromptTemplate
 from langgraph.graph import START, MessagesState, StateGraph, END
 from pydantic import create_model, BaseModel, Field
 
-
-from config import OPEN_AI_KEY, POSTGRES_URL
+# from langchain_postgres import PostgresChatMessageHistory
+from back.custom_postgres import PostgresChatMessageHistory
+from back.db import get_session_by_id, get_chat, get_requirements, table_name
+from config import OPEN_AI_KEY, conn_info
 
 log = logging.getLogger(__name__)
 
@@ -30,28 +32,13 @@ with open('back/evaluate_prompt.md', encoding='utf-8') as f:
     eval_template = f.read()
 
 
-
-
-conn_info = POSTGRES_URL
-
-with psycopg.connect(conn_info, prepare_threshold=None) as conn:
-    try:
-        sync_connection = conn
-        print("Connected to the database")
-    except Exception as e:
-        print(f"Unable to connect to the database: {e}")
-    table_name = 'chat_history'
-    PostgresChatMessageHistory.create_tables(sync_connection, table_name)
-
-
 def cand_name(cand):
     return f'{cand["first_name"]} {cand["last_name"]}'
 
-def get_session_history(session_id: str, vacancy_id: int, connection) -> PostgresChatMessageHistory:
+def get_session_history(session_id: int, connection) -> PostgresChatMessageHistory:
     return PostgresChatMessageHistory(
         table_name,
         session_id,
-        vacancy_id,
         sync_connection=connection
     )
 
@@ -65,9 +52,8 @@ class Result(BaseModel):
         ..., description="""Indicates that the interview is finished."""
     )
 
-def start_chat(chat_id, vacancy_id, cand, requirements):
-    cand_id = chat_id
-    config = {"configurable": {"thread_id": cand_id}}
+def start_chat(session_id, cand, requirements):
+    config = {"configurable": {"thread_id": session_id}}
 
     # class State(MessagesState):
     #     input: str
@@ -91,17 +77,20 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
     def call_model(state: State, config: dict):
         # Use the chat model to generate a response
         with psycopg.connect(conn_info, prepare_threshold=None) as conn:
+            previous_messages = []
             session_id = config.get('configurable').get('thread_id')
-            session_id_uuid = uuid.UUID(int=session_id)
-            chat_history = get_session_history(str(session_id_uuid), vacancy_id, conn)
-            previous_messages = chat_history.messages
+            chat_history = get_session_history(session_id, conn)
+            if len(state['messages']) <= 2:
+                    previous_messages = chat_history.messages
             if previous_messages:
-                response = chat.invoke(prompt.invoke(previous_messages))
+                all_messages = previous_messages + state['messages']
+                response = chat.invoke(prompt.invoke(all_messages))
             else:
                 prompted_messages = prompt.invoke(state['messages'])
                 response = chat.invoke(prompted_messages)
-                chat_history.add_messages([state['messages'][-1]]+[response])
-            return {"messages": [AIMessage(content = parser.invoke(response.content).question)], "is_finished": parser.invoke(response.content).finished}
+            structured_response = {"messages": [AIMessage(content = parser.invoke(response.content).question)], "is_finished": parser.invoke(response.content).finished}
+            chat_history.add_messages([state['messages'][-1]] + [response])
+            return structured_response
 
 
 
@@ -114,13 +103,24 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
     memory = MemorySaver()
     graph = workflow.compile(checkpointer=memory)
 
-    start_msg = PromptTemplate.from_template(start_template).format(name=cand['name'])
-    with get_openai_callback() as cb:
-        initial_state = {'messages': [SystemMessage(content=start_msg)]}
-        greeting = graph.invoke(initial_state, config)
-        #log.info(f'Greeting - ${cb.total_cost:.4f}')
+    prev_history = None
+    with psycopg.connect(conn_info, prepare_threshold=None) as conn:
+        session_id = config.get('configurable').get('thread_id')
+        chat_history = get_session_history(session_id, conn)
+        if chat_history.messages:
+            prev_history = chat_history.messages
 
-    def process_candidate_input(chat_id, input, vacancy_id):
+
+    if prev_history is not None:
+        greeting = {"messages": [AIMessage(content = parser.invoke(prev_history[-1].content).question)], "is_finished": parser.invoke(prev_history[-1].content).finished}
+    else:
+        start_msg = PromptTemplate.from_template(start_teФmplate).format(name=cand['name'])
+        initial_state = {'messages': [SystemMessage(content=start_msg)], 'is_finished': False}
+        with get_openai_callback() as cb:
+            greeting = graph.invoke(initial_state, config)
+            # log.info(f'Greeting - ${cb.total_cost:.4f}')
+
+    def process_candidate_input(input):
         log.info(f'user : {input}')
         user_state = {'messages': [HumanMessage(content=input)]}
         with get_openai_callback() as cb:
@@ -132,16 +132,15 @@ def start_chat(chat_id, vacancy_id, cand, requirements):
         session_id = config.get('configurable').get('thread_id')
         session_id_uuid = uuid.UUID(int=session_id)
         with psycopg.connect(conn_info, prepare_threshold=None) as conn:
-            hist = get_session_history(str(session_id_uuid), vacancy_id, conn).messages
+            hist = get_session_history(session_id, conn).messages
             return msg, finish, hist
 
     return greeting, process_candidate_input
 
 
 
-def evaluate(chat_id, cand, vacancy_id, requirements):
-    cand_id = chat_id
-    config = {"configurable": {"thread_id": cand_id}}
+def evaluate(session_id, cand, requirements):
+    config = {"configurable": {"thread_id": session_id}}
     prompt = ChatPromptTemplate.from_messages(
         [
             SystemMessagePromptTemplate.from_template(eval_template).format(
@@ -164,8 +163,7 @@ def evaluate(chat_id, cand, vacancy_id, requirements):
         # Use the chat model to generate a response
         with psycopg.connect(conn_info, prepare_threshold=None) as conn:
             session_id = config.get('configurable').get('thread_id')
-            session_id_uuid = uuid.UUID(int=session_id)
-            chat_history = get_session_history(str(session_id_uuid), vacancy_id, conn)
+            chat_history = get_session_history(session_id, conn)
             previous_messages = chat_history.messages
             prompted_messages = prompt.invoke(previous_messages)
             response = llm_with_tools.invoke(prompted_messages)
@@ -181,3 +179,27 @@ def evaluate(chat_id, cand, vacancy_id, requirements):
     if marks:
         log.info(f'Set marks : {marks}')
     return marks
+
+def main(args):
+    sesh = get_session_by_id(args.session_id)
+    vac_id = sesh['vacancy_id']
+    reqs = get_requirements(vac_id)
+    cand = get_chat(sesh['chat_id'])
+    greeting, chat_processor = start_chat(args.session_id, cand, reqs)
+    print(greeting)
+    while (S:=input('Enter your query: ')) != 'exit':
+        msg, finish, hist = chat_processor(S)
+        print(msg)
+        if finish:
+            break
+
+if __name__ == "__main__":
+
+    # Create an ArgumentParser object parser = argparse.ArgumentParser(description="Query processor")
+    parser = argparse.ArgumentParser()
+    # Add an argument for the query
+    parser.add_argument("--session_id", type=int, default =2, help="Enter your query")
+
+    # Parse the arguments
+    args = parser.parse_args()
+    main(args)

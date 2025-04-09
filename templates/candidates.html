@@ -1,0 +1,41 @@
+{% extends "base.html" %}
+
+{% block title %}Candidates{% endblock %}
+
+{% block content %}
+<h1 class="text-3xl font-bold mb-6">Candidates</h1>
+<div class="bg-white shadow-md rounded-lg overflow-hidden">
+    <ul class="divide-y divide-gray-200">
+        {% for candidate in candidates %}
+            <li class="p-4">
+                <div class="flex items-center justify-between">
+                    <div>
+                        <p class="text-lg font-semibold text-gray-900">{{ candidate.chat.name }}</p>
+                        <p class="text-sm text-gray-500">{{ candidate.chat.email }}</p>
+                    </div>
+                    <div class="flex items-center">
+                        <span class="px-3 py-1 rounded-full text-sm font-medium
+                            {% if candidate.state == 'finished' %}
+                                bg-green-100 text-green-800
+                            {% else %}
+                                bg-yellow-100 text-yellow-800
+                            {% endif %}">
+                            {{ candidate.state }}
+                        </span>
+                        {% if candidate.state == 'finished' %}
+                            <a href="{{ url_for('read_candidate', candidate_id=candidate.chat.id) }}"
+                               class="ml-4 text-blue-500 hover:underline">
+                                View Details
+                            </a>
+                        {% else %}
+                            <span class="ml-4 text-gray-400 cursor-not-allowed">
+                                View Details
+                            </span>
+                        {% endif %}
+                    </div>
+                </div>
+            </li>
+        {% endfor %}
+    </ul>
+</div>
+{% endblock %}
