@@ -66,8 +66,8 @@ def get_candidate_details(candidate_id: int):
         raise HTTPException(status_code=500, detail="Failed to retrieve candidates details")
 
 
-    # Fetch related marks
-    marks_response = supabase.table("marks").select("*").eq("chat_id", candidate_id).execute()
+    # Fetch marks
+    marks_response = supabase.table("marks").select("*, requirements:requirement_id(name)").eq("chat_id", candidate_id).execute()
     if marks_response:
         marks = marks_response.data
     else:

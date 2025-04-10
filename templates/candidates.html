@@ -10,20 +10,20 @@
             <li class="p-4">
                 <div class="flex items-center justify-between">
                     <div>
-                        <p class="text-lg font-semibold text-gray-900">{{ candidate.chat.name }}</p>
-                        <p class="text-sm text-gray-500">{{ candidate.chat.email }}</p>
+                        <p class="text-lg font-semibold text-gray-900">{{ candidate['chat']['name'] }}</p>
+                        <p class="text-sm text-gray-500">{{ candidate['chat']['email'] }}</p>
                     </div>
                     <div class="flex items-center">
                         <span class="px-3 py-1 rounded-full text-sm font-medium
-                            {% if candidate.state == 'finished' %}
+                            {% if candidate['state'] == 'finished' %}
                                 bg-green-100 text-green-800
                             {% else %}
                                 bg-yellow-100 text-yellow-800
                             {% endif %}">
-                            {{ candidate.state }}
+                            {{ candidate['state'] }}
                         </span>
-                        {% if candidate.state == 'finished' %}
-                            <a href="{{ url_for('read_candidate', candidate_id=candidate.chat.id) }}"
+                        {% if candidate['state'] == 'finished' %}
+                            <a href="{{ url_for('read_candidate', vacancy_id=vacancy_id, candidate_id=candidate['chat']['id']) }}"
                                class="ml-4 text-blue-500 hover:underline">
                                 View Details
                             </a>

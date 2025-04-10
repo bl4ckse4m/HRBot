@@ -6,14 +6,19 @@
 <div class="bg-white shadow-md rounded-lg p-6">
     <h1 class="text-3xl font-bold text-gray-900 mb-4">{{ candidate.name }}</h1>
     <p class="text-gray-600"><strong>Email:</strong> {{ candidate.email }}</p>
-    <p class="text-gray-600"><strong>Resume:</strong> {{ candidate.resume }}</p>
-
-    <h2 class="text-2xl font-semibold text-gray-900 mt-6 mb-4">Marks</h2>
+    <p class="text-gray-600"><strong>Резюме:</strong></p>
+    <div class="max-w-5xl h-[32rem] overflow-y-auto border border-gray-300 p-4 bg-gray-50">
+        <p class="text-gray-600 whitespace-pre-wrap">
+            {{ candidate.resume | replace('', '•') | safe}}
+        </p>
+    </div>
+    <h2 class="text-2xl font-semibold text-gray-900 mt-6 mb-4">Оценки</h2>
     <div class="overflow-x-auto">
         <table class="min-w-full bg-white border border-gray-200">
             <thead class="bg-gray-100">
                 <tr>
                     <th class="py-2 px-4 border-b text-left text-gray-600">Requirement ID</th>
+                    <th class="py-2 px-4 border-b text-left text-gray-600">Name</th>
                     <th class="py-2 px-4 border-b text-left text-gray-600">Value</th>
                 </tr>
             </thead>
@@ -21,6 +26,7 @@
                 {% for mark in marks %}
                     <tr class="hover:bg-gray-50 transition duration-150">
                         <td class="py-2 px-4 border-b">{{ mark.requirement_id }}</td>
+                        <td class="py-2 px-4 border-b">{{ mark.requirements.name }}</td>
                         <td class="py-2 px-4 border-b">{{ mark.value }}</td>
                     </tr>
                 {% endfor %}
@@ -28,12 +34,12 @@
         </table>
     </div>
 
-    <h2 class="text-2xl font-semibold text-gray-900 mt-6 mb-4">Chat History</h2>
+    <h2 class="text-2xl font-semibold text-gray-900 mt-6 mb-4">История сообщений</h2>
     <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto space-y-4">
         {% for chat in chat_history %}
-            <div class="p-3 rounded-lg {% if chat.is_user %}bg-blue-100 self-end{% else %}bg-gray-200 self-start{% endif %}">
-                <p class="text-sm text-gray-600">{{ chat.timestamp }}</p>
-                <p class="text-gray-800">{{ chat.message }}</p>
+            <div class="p-3 rounded-lg {% if chat.message.type == 'human' %}bg-blue-100 self-end{% else %}bg-gray-200 self-start{% endif %}">
+                <p class="text-sm text-gray-600">{{ chat.message.created_at }}</p>
+                <p class="text-gray-800">{{ chat.message.data.content }}</p>
             </div>
         {% endfor %}
     </div>

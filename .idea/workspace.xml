@@ -4,19 +4,13 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b70034f2-ced6-48f2-afed-dc617bc2d54e" name="Changes" comment="Created Webhook with FastAPI! (instead of polling)">
-      <change afterPath="$PROJECT_DIR$/templates/base.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/candidate_detail.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/candidates.html" afterDir="false" />
-      <change afterPath="$PROJECT_DIR$/templates/vacancies.html" afterDir="false" />
+    <list default="true" id="b70034f2-ced6-48f2-afed-dc617bc2d54e" name="Changes" comment="Created monitoring website and other important changes">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/back/ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/ai.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/back/custom_postgres.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/custom_postgres.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/back/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/db.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/config.py" beforeDir="false" afterPath="$PROJECT_DIR$/config.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/poetry.lock" beforeDir="false" afterPath="$PROJECT_DIR$/poetry.lock" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/candidate_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/candidate_detail.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/candidates.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/candidates.html" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/templates/vacancies.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/vacancies.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -109,7 +103,7 @@
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
-        <env name="WEBHOOK_HOST" value="ebd0-37-1-192-134.ngrok-free.app" />
+        <env name="WEBHOOK_HOST" value="1954-37-1-192-134.ngrok-free.app" />
       </envs>
       <option name="SDK_HOME" value="" />
       <option name="SDK_NAME" value="Python 3.12 (HRBot)" />
@@ -224,7 +218,15 @@
       <option name="project" value="LOCAL" />
       <updated>1741812048830</updated>
     </task>
-    <option name="localTasksCounter" value="10" />
+    <task id="LOCAL-00010" summary="Created monitoring website and other important changes">
+      <option name="closed" value="true" />
+      <created>1744223031075</created>
+      <option name="number" value="00010" />
+      <option name="presentableId" value="LOCAL-00010" />
+      <option name="project" value="LOCAL" />
+      <updated>1744223031075</updated>
+    </task>
+    <option name="localTasksCounter" value="11" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -248,7 +250,8 @@
     <MESSAGE value="Separated evaluating marks from interviewing" />
     <MESSAGE value="Modified PostgresChatMessageHistory to pass 2 keys instead of only session_id" />
     <MESSAGE value="Created Webhook with FastAPI! (instead of polling)" />
-    <option name="LAST_COMMIT_MESSAGE" value="Created Webhook with FastAPI! (instead of polling)" />
+    <MESSAGE value="Created monitoring website and other important changes" />
+    <option name="LAST_COMMIT_MESSAGE" value="Created monitoring website and other important changes" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
@@ -297,16 +300,6 @@
           <url>file://$PROJECT_DIR$/back/db.py</url>
           <line>175</line>
           <option name="timeStamp" value="102" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>97</line>
-          <option name="timeStamp" value="103" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>101</line>
-          <option name="timeStamp" value="105" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>
