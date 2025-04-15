@@ -95,16 +95,19 @@ def read_candidates(request: Request):
 @app.get("/vacancies/{vacancy_id}/candidates")
 def candidates_page(request: Request, vacancy_id: int):
     candidates = get_candidates_by_vacancy(vacancy_id)
-    return templates.TemplateResponse("candidates.html", {"request": request, "candidates": candidates, "vacancy_id": vacancy_id})
+    vacancy_name = get_vacancy(vacancy_id)['name']
+    return templates.TemplateResponse("candidates.html", {"request": request, "candidates": candidates, "vacancy_id": vacancy_id, "vacancy_name": vacancy_name})
 
 @app.get("/vacancies/{vacancy_id}/candidates/{candidate_id}")
 def read_candidate(request: Request, vacancy_id: int, candidate_id: int):
     candidate, marks, chat_history = get_candidate_details(candidate_id)
+    vacancy_name = get_vacancy(vacancy_id)['name']
     return templates.TemplateResponse("candidate_detail.html", {
         "request": request,
         "candidate": candidate,
         "marks": marks,
-        "chat_history": chat_history
+        "chat_history": chat_history,
+        "vacancy_name": vacancy_name
     })
 
 @bot.message_handler(commands=['start'])

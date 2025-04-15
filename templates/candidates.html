@@ -3,7 +3,7 @@
 {% block title %}Candidates{% endblock %}
 
 {% block content %}
-<h1 class="text-3xl font-bold mb-6">Candidates</h1>
+<h1 class="text-3xl font-bold mb-6">Кандидаты на вакансию {{vacancy_name}}</h1>
 <div class="bg-white shadow-md rounded-lg overflow-hidden">
     <ul class="divide-y divide-gray-200">
         {% for candidate in candidates %}

@@ -67,7 +67,8 @@ def get_candidate_details(candidate_id: int):
 
 
     # Fetch marks
-    marks_response = supabase.table("marks").select("*, requirements:requirement_id(name)").eq("chat_id", candidate_id).execute()
+    #marks_response = supabase.table("marks").select("*, requirements:requirement_id(name)").eq("chat_id", candidate_id).execute()
+    marks_response = supabase.table("latest_marks").select("*").eq("chat_id", candidate_id).execute()
     if marks_response:
         marks = marks_response.data
     else:
