@@ -20,7 +20,7 @@ from config import OPEN_AI_KEY, conn_info
 log = logging.getLogger(__name__)
 
 # Create an instance of the OpenAI LLM
-chat = ChatOpenAI(model="gpt-4o-mini", api_key=OPEN_AI_KEY)
+chat = ChatOpenAI(model="gpt-4.1-mini", api_key=OPEN_AI_KEY)
 
 with open('back/hr_prompt.md', encoding='utf-8') as f:
     top_template = f.read()
@@ -31,9 +31,6 @@ with open('back/start_msg.md', encoding='utf-8') as f:
 with open('back/evaluate_prompt.md', encoding='utf-8') as f:
     eval_template = f.read()
 
-
-def cand_name(cand):
-    return f'{cand["first_name"]} {cand["last_name"]}'
 
 def get_session_history(session_id: int, connection) -> PostgresChatMessageHistory:
     return PostgresChatMessageHistory(
@@ -110,22 +107,29 @@ def start_chat(session_id, cand, requirements):
         if chat_history.messages:
             prev_history = chat_history.messages
 
+    cost = 0
 
     if prev_history is not None:
-        greeting = {"messages": [AIMessage(content = parser.invoke(prev_history[-1].content).question)], "is_finished": parser.invoke(prev_history[-1].content).finished}
+        for msg in reversed(prev_history):
+            if msg.type == 'ai':
+                greeting = {"messages": [AIMessage(content=parser.invoke(msg.content).question)],
+                            "is_finished": parser.invoke(msg.content).finished}
+                break
     else:
-        start_msg = PromptTemplate.from_template(start_teФmplate).format(name=cand['name'])
+        start_msg = PromptTemplate.from_template(start_template).format(name=cand['name'])
         initial_state = {'messages': [SystemMessage(content=start_msg)], 'is_finished': False}
         with get_openai_callback() as cb:
             greeting = graph.invoke(initial_state, config)
-            # log.info(f'Greeting - ${cb.total_cost:.4f}')
+            log.info(f'Greeting - ${cb.total_cost:.4f}')
+            cost = cb.total_cost
 
     def process_candidate_input(input):
         log.info(f'user : {input}')
         user_state = {'messages': [HumanMessage(content=input)]}
         with get_openai_callback() as cb:
             resp = graph.invoke(user_state, config)
-            #log.info(f'Question - ${cb.total_cost:.4f}')
+            log.info(f'Question - ${cb.total_cost:.4f}')
+            cost = cb.total_cost
         msg = resp['messages'][-1].content
         finish = resp['is_finished']
 
@@ -133,9 +137,9 @@ def start_chat(session_id, cand, requirements):
         session_id_uuid = uuid.UUID(int=session_id)
         with psycopg.connect(conn_info, prepare_threshold=None) as conn:
             hist = get_session_history(session_id, conn).messages
-            return msg, finish, hist
+            return msg, finish, hist, cost
 
-    return greeting, process_candidate_input
+    return greeting, process_candidate_input, cost
 
 
 
@@ -171,7 +175,7 @@ def evaluate(session_id, cand, requirements):
 
     with get_openai_callback() as cb:
         resp = call_evaluate(config)
-        # log.info(f'Question - ${cb.total_cost:.4f}')
+        log.info(f'Question - ${cb.total_cost:.4f}')
     marks = None
     for tc in resp['messages'].tool_calls or []:
         if tc['name'] == Marks.__name__:

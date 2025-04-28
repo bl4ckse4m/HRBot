@@ -4,13 +4,16 @@
     <option name="autoReloadType" value="SELECTIVE" />
   </component>
   <component name="ChangeListManager">
-    <list default="true" id="b70034f2-ced6-48f2-afed-dc617bc2d54e" name="Changes" comment="Fully working version with monitoring website v.1">
+    <list default="true" id="b70034f2-ced6-48f2-afed-dc617bc2d54e" name="Changes" comment="Better web-site">
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/back/ai.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/ai.py" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/back/db.py" beforeDir="false" afterPath="$PROJECT_DIR$/back/db.py" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/back/evaluate_prompt.md" beforeDir="false" afterPath="$PROJECT_DIR$/back/evaluate_prompt.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/back/hr_prompt.md" beforeDir="false" afterPath="$PROJECT_DIR$/back/hr_prompt.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/back/new_ai.py" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/back/start_msg.md" beforeDir="false" afterPath="$PROJECT_DIR$/back/start_msg.md" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/main.py" beforeDir="false" afterPath="$PROJECT_DIR$/main.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/candidate_detail.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/candidate_detail.html" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/templates/candidates.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/candidates.html" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/templates/vacancies.html" beforeDir="false" afterPath="$PROJECT_DIR$/templates/vacancies.html" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -103,7 +106,7 @@
       <option name="PARENT_ENVS" value="true" />
       <envs>
         <env name="PYTHONUNBUFFERED" value="1" />
-        <env name="WEBHOOK_HOST" value="1954-37-1-192-134.ngrok-free.app" />
+        <env name="WEBHOOK_HOST" value="6006-37-1-192-134.ngrok-free.app" />
       </envs>
       <option name="SDK_HOME" value="" />
       <option name="SDK_NAME" value="Python 3.12 (HRBot)" />
@@ -234,7 +237,15 @@
       <option name="project" value="LOCAL" />
       <updated>1744315243809</updated>
     </task>
-    <option name="localTasksCounter" value="12" />
+    <task id="LOCAL-00012" summary="Better web-site">
+      <option name="closed" value="true" />
+      <created>1744716683852</created>
+      <option name="number" value="00012" />
+      <option name="presentableId" value="LOCAL-00012" />
+      <option name="project" value="LOCAL" />
+      <updated>1744716683852</updated>
+    </task>
+    <option name="localTasksCounter" value="13" />
     <servers />
   </component>
   <component name="Vcs.Log.Tabs.Properties">
@@ -260,60 +271,21 @@
     <MESSAGE value="Created Webhook with FastAPI! (instead of polling)" />
     <MESSAGE value="Created monitoring website and other important changes" />
     <MESSAGE value="Fully working version with monitoring website v.1" />
-    <option name="LAST_COMMIT_MESSAGE" value="Fully working version with monitoring website v.1" />
+    <MESSAGE value="Better web-site" />
+    <option name="LAST_COMMIT_MESSAGE" value="Better web-site" />
   </component>
   <component name="XDebuggerManager">
     <breakpoint-manager>
       <breakpoints>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>206</line>
-          <option name="timeStamp" value="86" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>209</line>
-          <option name="timeStamp" value="92" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>220</line>
-          <option name="timeStamp" value="94" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
           <url>file://$PROJECT_DIR$/back/db.py</url>
-          <line>219</line>
-          <option name="timeStamp" value="95" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>90</line>
-          <option name="timeStamp" value="98" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>92</line>
-          <option name="timeStamp" value="99" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/main.py</url>
-          <line>204</line>
-          <option name="timeStamp" value="100" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/back/ai.py</url>
-          <line>113</line>
-          <option name="timeStamp" value="101" />
-        </line-breakpoint>
-        <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/back/db.py</url>
-          <line>176</line>
+          <line>177</line>
           <option name="timeStamp" value="102" />
         </line-breakpoint>
         <line-breakpoint enabled="true" suspend="THREAD" type="python-line">
-          <url>file://$PROJECT_DIR$/back/db.py</url>
-          <line>70</line>
-          <option name="timeStamp" value="108" />
+          <url>file://$PROJECT_DIR$/back/ai.py</url>
+          <line>129</line>
+          <option name="timeStamp" value="123" />
         </line-breakpoint>
       </breakpoints>
       <default-breakpoints>

@@ -18,7 +18,7 @@ from back.db import (get_chat,
                      update_marks, update_chat_info, get_opened_vacancies,
                      get_vacancy_id, transform_marks, get_requirements_ids, get_session, upsert_session,
                      get_session_state, get_all_candidates, get_candidate_details, get_all_vacancies,
-                     get_candidates_by_vacancy, init_db, get_marks, get_session_by_id
+                     get_candidates_by_vacancy, init_db, get_marks, get_session_by_id, update_cost
                      )
 
 log = logging.getLogger(__file__)
@@ -98,9 +98,9 @@ def candidates_page(request: Request, vacancy_id: int):
     vacancy_name = get_vacancy(vacancy_id)['name']
     return templates.TemplateResponse("candidates.html", {"request": request, "candidates": candidates, "vacancy_id": vacancy_id, "vacancy_name": vacancy_name})
 
-@app.get("/vacancies/{vacancy_id}/candidates/{candidate_id}")
-def read_candidate(request: Request, vacancy_id: int, candidate_id: int):
-    candidate, marks, chat_history = get_candidate_details(candidate_id)
+@app.get("/vacancies/{vacancy_id}/candidates/{chat_id}")
+def read_candidate(request: Request, vacancy_id: int, chat_id: int):
+    candidate, marks, chat_history = get_candidate_details(chat_id, vacancy_id)
     vacancy_name = get_vacancy(vacancy_id)['name']
     return templates.TemplateResponse("candidate_detail.html", {
         "request": request,
@@ -201,12 +201,15 @@ def process_vacancy_selection(call):
 
 def initiate_llm_chat(chat_id, vacancy_id, session_id, cand, vacancy_requirements):
     if cand:
-        greeting, chat_processor = start_chat(session_id, cand, vacancy_requirements)
+        greeting, chat_processor, init_cost = start_chat(session_id, cand, vacancy_requirements)
+        update_cost(session_id, init_cost)
         greeting_msg = greeting['messages'][-1].content
-        bot.send_message(chat_id, greeting_msg)
+
         if greeting['is_finished']:
-            bot.send_message('Интервью на данную вакансию было завершено.')
+            upsert_session(chat_id, vacancy_id, 'finished')
+            bot.send_message(chat_id, 'Интервью на данную вакансию было завершено.')
         else:#update_chat_info(chat_id, new_state='STARTED')
+            bot.send_message(chat_id, greeting_msg)
             bot.register_next_step_handler_by_chat_id(chat_id, interview_candidate, chat_processor, vacancy_id, session_id, cand, vacancy_requirements)
     else:
         bot.send_message(chat_id, "Resume not found. Please upload your resume.")
@@ -216,15 +219,17 @@ def initiate_llm_chat(chat_id, vacancy_id, session_id, cand, vacancy_requirement
 def interview_candidate(message,  chat_processor, vacancy_id, session_id,  cand, requirements):
     chat_id = message.chat.id
     input_msg = message.text
-    msg, finish, hist = chat_processor(input_msg)
+    msg, finish, hist, cost  = chat_processor(input_msg)
+    update_cost(session_id, cost)
 
     if finish:
         marks = evaluate(session_id, cand, requirements)
         if marks:
-            id_marks = transform_marks(marks, get_requirements_ids())
-            update_marks(vacancy_id, message.chat.id, id_marks)
+            id_marks = transform_marks(marks, get_requirements_ids(), vacancy_id)
+            update_marks(message.chat.id, id_marks)
             upsert_session(chat_id, vacancy_id, 'finished')
             bot.send_message(message.chat.id, msg)
+            bot.send_message(message.chat.id, "Интервью завершено.")
         else:
             log.info('Interview finished, but marks not found')
     else:

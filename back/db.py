@@ -57,9 +57,9 @@ def get_all_candidates():
 
 
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
-def get_candidate_details(candidate_id: int):
+def get_candidate_details(chat_id: int, vacancy_id: int):
     # Fetch candidate information
-    candidate_response = supabase.table("chat").select("*").eq("id", candidate_id).single().execute()
+    candidate_response = supabase.table("chat").select("*").eq("id", chat_id).single().execute()
     if candidate_response:
         candidate = candidate_response.data
     else:
@@ -68,7 +68,7 @@ def get_candidate_details(candidate_id: int):
 
     # Fetch marks
     #marks_response = supabase.table("marks").select("*, requirements:requirement_id(name)").eq("chat_id", candidate_id).execute()
-    marks_response = supabase.table("latest_marks").select("*").eq("chat_id", candidate_id).execute()
+    marks_response = supabase.table("latest_marks").select("*, marks:requirement_id(vacancy_id)").eq("chat_id", chat_id).eq("vacancy_id", vacancy_id).execute()
     if marks_response:
         marks = marks_response.data
     else:
@@ -76,7 +76,8 @@ def get_candidate_details(candidate_id: int):
 
 
     # Fetch chat history
-    chat_history_response = supabase.table("chat_history").select("*").eq("session_id", candidate["session_id"]).execute()
+    session_id = get_session(chat_id, vacancy_id)['id']
+    chat_history_response = supabase.table("chat_history").select("*").eq("session_id", session_id).order('id').execute()
     if chat_history_response:
         chat_history = chat_history_response.data
     else:
@@ -120,13 +121,13 @@ def get_vacancy_id(vacancy_name):
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
 def get_requirements_ids():
     v = (supabase.table('requirements')
-         .select('id', 'name')
+         .select('id', 'name', 'vacancy_id')
          .execute())
     if v:
         return v.data
 
-def transform_marks(marks_dict, reqs_dict):
-    name_to_id = {item['name']: item['id'] for item in reqs_dict}
+def transform_marks(marks_dict, reqs_dict, vacancy_id):
+    name_to_id = {item['name']: item['id'] for item in reqs_dict if item['vacancy_id'] == vacancy_id}
     transformed_dict = {name_to_id[key]: value for key, value in marks_dict.items() if key in name_to_id}
     return transformed_dict
 
@@ -163,10 +164,10 @@ def get_candidate(email: str):
         return cand.data
 
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
-def get_chat(id: int):
+def get_chat(chat_id: int):
     cand = (supabase.table('chat')
             .select("*")
-            .eq('id', id)
+            .eq('id', chat_id)
             .maybe_single()
             .execute())
     if cand:
@@ -195,10 +196,10 @@ def get_session(chat_id: int, vacancy_id: int):
 
 
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
-def get_session_by_id(sesh_id: int):
+def get_session_by_id(session_id: int):
     sesh = (supabase.table('session')
             .select("*")
-            .eq('id', sesh_id)
+            .eq('id', session_id)
             .maybe_single()
             .execute())
     if sesh:
@@ -216,22 +217,33 @@ def get_candidate_by_id(id: int):
         return cand.data
 
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
-def upsert_session(chat_id, vacancy_id, state):
+def upsert_session(chat_id, vacancy_id, state, cost: Optional[float] = None):
+    data = {
+        'chat_id': chat_id,
+        'vacancy_id': vacancy_id,
+        'state': state
+    }
+    if cost is not None:
+        data['cost'] = cost
     (supabase.table('session')
-     .upsert(dict(vacancy_id=vacancy_id, chat_id=chat_id, state = state))
+     .upsert(data, on_conflict='chat_id, vacancy_id')
      .execute())
 
-
+@retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
+def update_cost(session_id, value):
+    supabase.rpc('increment_cost', {'x': value, 'sesh_id': session_id }).execute()
 
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
-def update_marks(vacancy_id, cand_id, marks):
+def update_marks(cand_id, marks):
     (supabase.table('marks')
-     .upsert([dict(vacancy_id=vacancy_id,
+     .upsert([dict(
                    chat_id=cand_id,
                    requirement_id=id,
                    value=val)
               for id, val in marks.items()])
      .execute())
+
+
 
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
 def update_chat_info(chat_id, name: Optional[str]=None, email: Optional[str]=None, new_resume: Optional[str] = None, session_id: Optional[int] = None):

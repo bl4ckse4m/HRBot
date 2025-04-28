@@ -23,13 +23,13 @@
                             {{ candidate['state'] }}
                         </span>
                         {% if candidate['state'] == 'finished' %}
-                            <a href="{{ url_for('read_candidate', vacancy_id=vacancy_id, candidate_id=candidate['chat']['id']) }}"
+                            <a href="{{ url_for('read_candidate', vacancy_id=vacancy_id, chat_id=candidate['chat']['id']) }}"
                                class="ml-4 text-blue-500 hover:underline">
-                                View Details
+                                Подробнее
                             </a>
                         {% else %}
                             <span class="ml-4 text-gray-400 cursor-not-allowed">
-                                View Details
+                                Подробнее
                             </span>
                         {% endif %}
                     </div>
