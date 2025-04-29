@@ -8,7 +8,7 @@
     <ul class="divide-y divide-gray-200">
         {% for vacancy in vacancies %}
             <li class="p-4 hover:bg-gray-50 transition duration-150">
-                <a href="{{ url_for('candidates_page', vacancy_id=vacancy.id) }}" class="flex items-center space-x-4">
+                <a href="{{ url_for('candidates_page', vacancy_id=vacancy.vacancy_id) }}" class="flex items-center space-x-4">
                     <div class="flex-1">
                         <p class="text-lg font-semibold text-gray-900">{{ vacancy["name"] }}</p>
                     </div>

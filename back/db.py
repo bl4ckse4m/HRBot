@@ -22,9 +22,9 @@ table_name = 'chat_history'
 
 @retry(tries=TRIES, delay=DELAY, backoff=BACKOFF)
 def get_all_vacancies():
-    response = supabase.table("session").select("vacancies:vacancy_id (id, name)").execute()
+    response = supabase.table("current_sessions").select("*").execute()
     if response:
-        return [item['vacancies'] for item in response.data]
+        return response.data
     else:
         raise HTTPException(status_code=500, detail="Failed to retrieve vacancies")
 
